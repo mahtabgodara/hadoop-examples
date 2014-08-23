@@ -22,7 +22,7 @@ public class MapSideJoin extends Configured implements Tool {
         Path outputPath = new Path(args[1]);
         
         Configuration conf = getConf();
-        DistributedCache.addCacheFile(new URI("/user/jowens/nobots_ip_country_tsv.txt"), conf);
+        DistributedCache.addCacheFile(new URI("/user/training/nobots_ip_country_tsv.txt"), conf);
         Job weblogJob = new Job(conf);
         weblogJob.setJobName("MapSideJoin");
         weblogJob.setNumReduceTasks(0);

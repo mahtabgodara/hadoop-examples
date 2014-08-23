@@ -1,0 +1,40 @@
+sudo apt-get update
+sudo apt-get upgrade
+sudo apt-get install openjdk-6-jdk
+sudo apt-get install openssh-server
+sudo apt-get install mysql-server
+sudo apt-get install ubuntu-desktop
+
+
+sudo ifconfig eth0 192.168.104.131 netmask 255.255.255.0
+sudo route add default gw 192.168.104.1 eth0
+sudo /etc/resolv.conf
+nameserver 192.168.0.149
+sudo ip addr flush eth0
+
+iface eth0 inet static
+        address 192.168.104.131
+        netmask 255.255.255.0
+        network 192.168.104.0
+        broadcast 192.168.104.255
+        gateway 192.168.104.1
+        # dns-* options are implemented by the resolvconf package, if installed
+        dns-nameservers 192.168.0.149
+        dns-search ubuntu
+
+vi /etc/resolv.conf
+
+nameserver 192.168.0.149
+search ubuntu
+
+
+XRDP to ubuntu
+
+https://community.hpcloud.com/article/using-windows-rdp-access-your-ubuntu-instance
+http://askubuntu.com/questions/247501/i-get-failed-to-load-session-ubuntu-2d-when-using-xrdp
+
+network config on ubuntu
+
+https://help.ubuntu.com/10.04/serverguide/network-configuration.html
+
+
