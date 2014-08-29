@@ -1,0 +1,76 @@
+Install maven using from the installation section on the following URL:
+
+http://maven.apache.org/guides/getting-started/maven-in-five-minutes.html
+
+Download: http://maven.apache.org/download.html
+Installation instructions: http://maven.apache.org/download.html#Installation
+
+
+Run the following commands to create a hadoop project under your workspace directory:
+
+mkdir wordcount
+cd wordcount
+
+mvn archetype:generate 
+
+It would start creating the project in interactive mode and ask you for inputs such as
+Choose a number or apply filter (format: [groupId:]artifactId, case sensitive contains): 16: 
+Define value for property 'groupId': : com.training.hadoop.examples
+Define value for property 'artifactId': : wordcount
+Define value for property 'version':  1.0-SNAPSHOT: : 
+Define value for property 'package':  com.training.hadoop.examples: : 
+Confirm properties configuration:
+groupId: com.training.hadoop.examples
+artifactId: wordcount
+version: 1.0-SNAPSHOT
+package: com.training.hadoop.examples
+ Y: : Y
+ 
+The values entered/selected should look like above.
+
+on successful completion, you should see a directory with the artifactId(wordcount) in the current directory with a project structure such as:
+
+wordcount
+   |-src
+   |---main
+   |-----java
+   |-------com
+   |---------training
+   |-----------hadoop
+   |-------------examples
+   |-----------------App.java
+   |---test
+   |-----java
+   |-------com
+   |---------training
+   |-----------hadoop
+   |-------------examples
+   |----------------AppTest.java
+   |-pom.xml
+   
+To make it a hadoop project, add the following dependency under the dependencies section:
+
+	<dependency>
+        <groupId>org.apache.hadoop</groupId>
+        <artifactId>hadoop-core</artifactId>
+        <version>1.2.1</version>
+    </dependency>
+ 
+Lets make the project eclipse compatible so that the project can be imported into eclipse for development. Run the following command for that in your project directory (wordcount)
+ 
+mvn eclipse:eclipse 
+
+Import the project in eclipse:
+
+1. Open eclipse 
+2. File -> import -> Existing Project into Workspace -> Select the project directory (wordcount) -> Finish
+
+The project is imported in eclipse with all the dependencies. You can now write Mapper/Reducer and Driver classes for your Hadoop Jobs.
+
+You can either export the project as a jar file using the file export option or right click on the pom.xml file -> Run As -> maven install . That would result into a jar file under the target directory that is under your project directory.
+
+You can now run the jar file with hadoop as:
+
+hadoop jar <project-dir-location>/target/wordcount-1.0-SNAPSHOT.jar <AbsolutePathToDriverClass> <input-dir> <output-dir>
+
+
