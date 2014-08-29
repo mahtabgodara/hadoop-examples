@@ -1,0 +1,329 @@
+Configure Network on the Machine, To configure network on the VM, Following is required:
+1. stop the running VM 
+2. go to settings of the VM machine
+3. Click on Network
+4. Click on Adaptor 2
+5. Click on "Enable Network Adaptor"
+6. Select "Internal Network" in the Attached to section.
+7. Press OK.
+8. Start the VM now.
+9. Go to System Setting -> Network 
+10. There should be 2 networks. Select each of them 1 by 1 and notice that one of those would have the following IP address configured "10.0.2.15". Leave that network adaptor.
+11. Select the other network adaptor and "ON" it if its "OFF"
+12. Click on "Options" -> IPv4 settings -> Method "Manual" -> Add, and specify the IP as 10.1.2.11 and Netmask as 8.
+13. Click on Save.
+
+Add the IP to host mapping in /etc/hosts
+10.1.2.11  master
+10.1.2.12  slave1
+
+#on all machines
+sudo addgroup hadoop
+sudo adduser --ingroup hadoop hduser
+sudo usermod -a -G sudo hduser
+
+#On master node
+su - hduser
+ssh-keygen -t rsa -P ""
+cat /home/hduser/.ssh/id_rsa.pub >> /home/hduser/.ssh/authorized_keys
+ssh-copy-id -i /home/hduser/.ssh/id_rsa.pub hduser@slave1
+
+cd softwares
+wget http://mirror.reverse.net/pub/apache/hadoop/common/hadoop-1.2.1/hadoop-1.2.1-bin.tar.gz # if its not downloaded allready
+tar xvzf hadoop-1.2.1-bin.tar.gz
+sudo ln -s /home/hduser/softwares/hadoop-1.2.1 /usr/local/hadoop
+
+
+which javac
+ls -l /usr/bin/javac
+ls -l /etc/alternatives/javac
+# JAVA HOME is /usr/lib/jvm/java-6-openjdk-i386/
+
+
+vi ~/.bashrc 
+#Append the following 
+export JAVA_HOME=/usr/lib/jvm/java-6-openjdk-i386/
+export HADOOP_HOME=/usr/local/hadoop
+export PATH=$PATH:$JAVA_HOME/bin:$HADOOP_HOME/bin
+
+
+# save and exit
+source ~/.bashrc
+
+cd /usr/local/hadoop
+hadoop jar hadoop-examples-1.2.1.jar wordcount README.txt out.0 
+rm -rf ./out.0
+
+# disable ipv6
+net.ipv6.conf.all.disable_ipv6 = 1
+net.ipv6.conf.default.disable_ipv6 = 1
+net.ipv6.conf.lo.disable_ipv6 = 1
+
+# In conf/hadoop-env.sh
+export HADOOP_OPTS=-Djava.net.preferIPv4Stack=true
+
+vi conf/hadoop-env.sh
+
+export JAVA_HOME=/usr/lib/jvm/java-6-openjdk-i386/
+export HADOOP_HEAPSIZE=512
+
+conf/core-site.xml
+
+sudo mkdir -p /app/hadoop/tmp
+sudo chown hduser:hadoop /app/hadoop/tmp
+# ...and if you want to tighten up security, chmod from 755 to 750...
+sudo chmod 750 /app/hadoop/tmp
+
+vi conf/core-site.xml
+
+<property>
+  <name>hadoop.tmp.dir</name>
+  <value>/app/hadoop/tmp</value>
+  <description>A base for other temporary directories.</description>
+</property>
+
+<property>
+  <name>fs.default.name</name>
+  <value>hdfs://master:9000</value>
+  <description>The name of the default file system.  A URI whose
+  scheme and authority determine the FileSystem implementation.  The
+  uri's scheme determines the config property (fs.SCHEME.impl) naming
+  the FileSystem implementation class.  The uri's authority is used to
+  determine the host, port, etc. for a filesystem.</description>
+</property>
+
+
+vi conf/mapred-site.xml
+
+<property>
+  <name>mapred.job.tracker</name>
+  <value>master:9001</value>
+  <description>The host and port that the MapReduce job tracker runs
+  at.  If "local", then jobs are run in-process as a single map
+  and reduce task.
+  </description>
+</property>
+
+
+vi conf/hdfs-site.xml
+
+<property>
+  <name>dfs.replication</name>
+  <value>1</value>
+  <description>Default block replication.
+  The actual number of replications can be specified when the file is created.
+  The default is used if replication is not specified in create time.
+  </description>
+</property>
+
+
+Shutdown the VM now and clone the master VM as slave1
+
+#On Slave VM
+
+Change the network IP address on the slave VM otherwise we will get into a conflicting IP address error. and lets assign 10.1.2.12 to the slave VM. 
+
+
+#On Master
+
+hadoop namenode -format
+
+start-dfs.sh
+jps on each machine  
+
+start-mapred.sh
+jps on each machine
+
+# All the required processes should be running on the respective VM's now.
+
+hadoop dfsadmin -report
+
+hadoop fs operations can be performed now
+
+
+
+***************************************************
+Setting UP HIVE 
+
+***************************************************
+
+On Master
+
+cd ~/softwares
+wget http://mirror.reverse.net/pub/apache/hive/stable/apache-hive-0.13.1-bin.tar.gz # if its not downloaded allready
+tar xvzf apache-hive-0.13.1-bin.tar.gz
+ln -s /home/hduser/softwares/apache-hive-0.13.1-bin /usr/local/hive
+
+vi ~/.bashrc
+export HIVE_HOME=/usr/local/hive
+export PATH=$PATH:$JAVA_HOME/bin:$HADOOP_HOME/bin:$HIVE_HOME/bin
+
+source ~/.bashrc
+
+Hive uses Hadoop, so:
+
+    you must have Hadoop in your path OR
+    export HADOOP_HOME=/usr/local/hadoop
+
+
+sudo apt-get install mysql-server
+
+sudo netstat -tap | grep mysql
+
+tcp        0      0 localhost:mysql         *:*                LISTEN      2556/mysqld
+
+sudo service mysqld restart
+
+mysql -u root -p
+
+default port for mysql is 3306
+
+# if JDBC connector is not already downloaded
+sudo apt-get install curl
+
+curl -L 'http://www.mysql.com/get/Downloads/Connector-J/mysql-connector-java-5.1.22.tar.gz/from/http://mysql.he.net/' | tar xz # if its not allready downloaded and extracted.
+
+# if JDBC connector is already download, extract that and copy the jar file in hive/lib directory
+
+sudo cp mysql-connector-java-5.1.22/mysql-connector-java-5.1.22-bin.jar /usr/local/hive/lib/
+
+# These steps have been already performed for you on the VM
+sudo /usr/bin/mysql_secure_installation
+
+N Y N N Y
+#The above steps have been already performed for you on the VM
+# Mysql password in the installation is set as "sa"
+
+mysql -u root -p
+
+mysql> CREATE DATABASE metastore;
+mysql> USE metastore;
+mysql> SOURCE /usr/local/hive/scripts/metastore/upgrade/mysql/hive-schema-0.13.0.mysql.sql;
+
+mysql> CREATE USER 'hive'@'master' IDENTIFIED BY 'mypassword';
+mysql> REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'hive'@'master';
+mysql> GRANT SELECT,INSERT,UPDATE,DELETE,LOCK TABLES,EXECUTE ON metastore.* TO 'hive'@'master';
+mysql> FLUSH PRIVILEGES;
+mysql> quit;
+
+create the file conf/hive-site.xml and add the following to it:
+
+<?xml version="1.0"?>
+<configuration>
+<property>
+  <name>javax.jdo.option.ConnectionURL</name>
+  <value>jdbc:mysql://master:3306/metastore</value>
+  <description>the URL of the MySQL database</description>
+</property>
+
+<property>
+  <name>javax.jdo.option.ConnectionDriverName</name>
+  <value>com.mysql.jdbc.Driver</value>
+</property>
+
+<property>
+  <name>javax.jdo.option.ConnectionUserName</name>
+  <value>hive</value>
+</property>
+
+<property>
+  <name>javax.jdo.option.ConnectionPassword</name>
+  <value>mypassword</value>
+</property>
+
+<property>
+  <name>datanucleus.autoCreateSchema</name>
+  <value>false</value>
+</property>
+
+<property>
+  <name>datanucleus.fixedDatastore</name>
+  <value>true</value>
+</property>
+
+<property>
+  <name>datanucleus.autoStartMechanism</name> 
+  <value>SchemaTable</value>
+</property> 
+</configuration>
+
+In addition, you must create /tmp and /user/hive/warehouse (aka hive.metastore.warehouse.dir) and set them chmod g+w in HDFS before you can create a table in Hive.
+
+Commands to perform this setup:
+
+  $ $HADOOP_HOME/bin/hadoop fs -mkdir       /tmp
+  $ $HADOOP_HOME/bin/hadoop fs -mkdir       /user/hive/warehouse
+  $ $HADOOP_HOME/bin/hadoop fs -chmod g+w   /tmp
+  $ $HADOOP_HOME/bin/hadoop fs -chmod g+w   /user/hive/warehouse
+
+You may find it useful, though it's not necessary, to set HIVE_HOME:
+
+add the following to ~/.bashrc
+
+export HIVE_HOME=/usr/local/hive
+export PATH=$PATH:$HIVE_HOME\bin
+
+source ~/.bashrc
+
+To launch hive shell 
+
+$ hive
+
+show databases;
+show tables;
+
+use metastore;
+
+You can now create tables and use Hive QL. An example below:
+
+create a file emps.txt with a few records
+
+vi emps.txt
+A|20
+B|30
+C|10
+D|40
+
+hive> create table employees ( name STRING, age INT) row format delimited fields terminated by '|'
+
+hive> hadoop fs -put emps.txt /user/hive/warehouse/employees/
+hive> select * from employees
+
+***********
+Hive Setup completes
+***********
+
+SETUP SQOOP
+
+
+***************************
+
+cd ~/softwares
+wget http://www.carfab.com/apachesoftware/sqoop/1.4.5/sqoop-1.4.5.bin__hadoop-1.0.0.tar.gz
+tar xvzf sqoop-1.4.5.bin__hadoop-1.0.0.tar.gz
+
+sudo ln -s ~/softwares/sqoop-1.4.5.bin__hadoop-1.0.0 /usr/local/sqoop
+
+cp ~/softwares/mysql-connector-java-5.1.31/mysql-connector-java-5.1.31-bin.jar /usr/local/hadoop/lib
+ 
+cp ~/softwares/mysql-connector-java-5.1.31/mysql-connector-java-5.1.31-bin.jar /usr/local/sqoop/lib
+
+stop-all.sh
+start-all.sh
+
+
+using JPS verify that all the hadoop processes are running 
+
+vi ~/.bashrc
+
+export SQOOP_HOME=/usr/local/sqoop
+export PATH=$PATH:$SQOOP_HOME/bin
+
+
+sqoop import -connect jdbc:mysql://localhost:3306/mysql --username root --password sa --table user
+
+
+
+http://www.datastax.com/documentation/datastax_enterprise/4.0/datastax_enterprise/ana/anaSqpDemo.html
+
+

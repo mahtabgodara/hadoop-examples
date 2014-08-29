@@ -43,7 +43,7 @@ public class WeblogMapper extends Mapper<Object, Text, Text, Text> {
     @Override
     protected void map(Object key, Text value, Context context) throws IOException, InterruptedException {
         String row = value.toString();
-        String[] tokens = row.split("\t");
+        String[] tokens = row.split(" ");
         String ip = tokens[0];
         String country = ipCountryMap.get(ip);
         outputKey.set(country);
