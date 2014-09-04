@@ -1,0 +1,41 @@
+You should use a combiner for all exercises.
+
+1. SELECT SUBSTRING(filename, 13, 10) as day, storage_byte_hours/24 as size FROM table 
+
+Example output from the query:
+
++------------+----------------------+
+|    day     |         size         |
++------------+----------------------+
+| 2014_01_05 | 2.3052008408333334E8 |
+| 2014_01_06 | 2.3012297245833334E8 |
+| 2014_01_07 | 3.3477797120833334E8 |
+| 2014_01_08 | 4.4183686058333334E8 |
++-----------------------------------+
+
+2. SELECT method, COUNT(*) AS count FROM table GROUP BY method
+
+Example output from the query:
+
++-----------+-------+
+| method    | count |
++-----------+-------+
+| PUT       |  8002 |
+| GET       | 12631 |
+| POST      |  2737 |
+| HEAD      |  2173 |
+| DELETE    |  7290 |
++-----------+-------+
+
+3. Select day, method, http_code, sum(bytes), count(*) from table GROUP BY day, method, http_code
+
+
+4. Select day, method, http_code, sum(bytes), count(*) from table GROUP BY day, method, http_code
+Output should be partitioned by MONTH
+
+
+5. Select day, method, http_code, sum(bytes), count(*) from table GROUP BY day, method, http_code SORT BY date ASC, sum(bytes) DESC
+
+
+
+ 
