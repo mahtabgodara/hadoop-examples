@@ -1,0 +1,70 @@
+page 19
+
+SortedMap< RowKey, List<
+                  SortedMap< Column, List<
+                          Value, Timestamp >
+                >
+        >
+>
+
+
+
+
+
+
+
+
+
+
+
+
+figure 1-5 on page 20
+
+what is the role of a block in an HFile and why is it just 64KB?
+figure 8.2 on page 317
+why lexical sorting only
+how a new key is added between the existing ones?
+seek vs transfer rates?
+As the WAL is in HDFS, how can it be fast to keep writing to that without loosing data in case of RS failure?
+
+What is contained in the ROOT And META tables?
+
+slide 52,60,100,101, 107, 111 (Flushes can block updates), 134, 136, 148
+
+during minor compaction, why cant we remove the deleted rows?
+can we specify a comparator for rowkey ordering?
+counters???
+
+How are the region location decided on first start of cluster?
+1. If Splits are not configured at the time of table definition
+  When the cluster is started for the first time, the cluster starts with a single region. The Region Server for the only region is decided randomly by the HMaster. when that region split happens, the HMaster decide where to keep the next region from. HMaster does RegionServer load balancing.
+
+2. If the splits are configured at the time of table definition
+  When the cluster is started for the first time, the cluster starts with those many regions in the cluster on randomly chosen RegionServers by HMaster.
+  When the table is defined with N Splits, there will be N regions in the cluster.
+  While defining the table with Splits, you also need to configure the startKey and endKey per split/region.
+  where the first split do not have a value for startkey and
+  The last split do not have an endkey.
+  All the other splits will carry startkey and endkey for the split/region.
+
+How are the region location decided on first start of cluster?
+    In this case, region location is decided as per the .META. information. The .META. is a table that retains the region location, startkey and endkey etc.
+
+How is data locality guaranteed if the HFile span multiple HDFS blocks?
+Answer:
+Region Server Data Locality
+  The HDFS client writes three replicas of each block by default
+    – First  replica  is  written  to  the  local  node
+    – Second  and  third  replicas  are  written  to  two  other  nodes  in  a  different   rack
+  Region splits and re-assignments can move data to non local store files
+  HBase eventually achieves locality for a region after a flush or a major compaction
+
+Are the column names stored for each cell? do we have to use small column names?
+would compression reduce the impact of column name storage?
+would timestamp be stored in hbase if i want to keep only 1 version?
+how does hbase decide which keys will be handled by what region?
+HFile structure in details with example?
+
+create 'testtable', 'colfam1', { SPLITS => ['row-300', 'row-500', 'row-700' , 'row-900']}
+
+for i in '0'..'9' do for j in '0'..'9' do for k in '0'..'9' do put 'testtable', "row-#{i}#{j}#{k}", "colfam1:#{j}#{k}", "#{j}#{k}" end end end

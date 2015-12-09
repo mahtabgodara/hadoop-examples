@@ -1,0 +1,223 @@
+Prerequisites: Pre-configured hadoop cluster.
+Perform the following on the "MASTER" node.
+
+cd ~/softwares
+tar xvzf apache-hive-0.13.1-bin.tar.gz
+sudo mv apache-hive-0.13.1-bin /usr/local/hive
+sudo chown hduser:hadoop /usr/local/hive
+
+# append the following 2 line to ~/.bashrc
+
+sudo vi ~/.bashrc
+export HIVE_HOME=/usr/local/hive
+export PATH=$PATH:$HIVE_HOME/bin
+
+In addition, you must create /tmp and /user/hive/warehouse (aka hive.metastore.warehouse.dir) and set them chmod g+w in HDFS before you can create a table in Hive.
+
+Commands to perform this setup:
+
+hadoop fs -mkdir /tmp
+hadoop fs -mkdir /user/hive/warehouse
+hadoop fs -chmod g+w /tmp
+hadoop fs -chmod g+w /user/hive/warehouse
+
+mysql -u root -p
+
+# The root password of mysql is "sa".
+
+CREATE DATABASE metastore;
+USE metastore;
+SOURCE /usr/local/hive/scripts/metastore/upgrade/mysql/hive-schema-0.13.0.mysql.sql;
+CREATE USER 'hive'@'localhost' IDENTIFIED BY 'mypassword';
+REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'hive'@'localhost';
+GRANT ALL ON *.* TO 'hive'@'localhost';
+FLUSH PRIVILEGES;
+quit;
+
+
+vi /usr/local/hive/conf/hive-site.xml
+
+<?xml version="1.0"?>
+<configuration>
+<property>
+  <name>javax.jdo.option.ConnectionURL</name>
+  <value>jdbc:mysql://localhost:3306/metastore</value>
+  <description>the URL of the MySQL database</description>
+</property>
+
+<property>
+  <name>javax.jdo.option.ConnectionDriverName</name>
+  <value>com.mysql.jdbc.Driver</value>
+</property>
+
+<property>
+  <name>javax.jdo.option.ConnectionUserName</name>
+  <value>hive</value>
+</property>
+
+<property>
+  <name>javax.jdo.option.ConnectionPassword</name>
+  <value>mypassword</value>
+</property>
+
+<property>
+  <name>datanucleus.autoCreateSchema</name>
+  <value>false</value>
+</property>
+
+<property>
+  <name>datanucleus.fixedDatastore</name>
+  <value>true</value>
+</property>
+
+<property>
+  <name>datanucleus.autoStartMechanism</name>
+  <value>SchemaTable</value>
+</property>
+</configuration>
+
+cd ~/software
+tar xvf mysql-connector-java-5.1.34.tar.gz
+
+cp mysql-connector-java-5.1.34/mysql-connector-java-5.1.34-bin.jar /usr/local/hive/lib/
+
+You can now create tables and use Hive QL. An example below:
+
+Create a file emps.txt with a few records
+
+vi emps.txt
+A|20
+B|30
+C|10
+D|40
+
+hadoop fs -put emps.txt /user/hive/warehouse/employees/
+
+# Launch the hive CLI
+hive
+hive> use metastore;
+
+hive> create table employees ( name STRING, age INT) row format delimited fields terminated by '|';
+
+hive> hadoop fs -put emps.txt /user/hive/warehouse/employees/
+hive> select * from employees
+
+To configure HiveServer2
+
+Start HiveServer2 as follows
+
+Add the following to hdfs-site.xml
+<property>
+  <name>dfs.permissions</name>
+  <value>false</value>
+</property>
+
+
+Restart the HDFS processes.
+
+bin/hiveserver2 --hiveconf hive.root.logger=INFO,console
+
+Please don't press ctrl + c as that would stop the server. you might decide to run it in background though.
+
+hiveserver2 should start successfully now. you can now use a thrift client for hive, for example a Hive JDBC Client.
+
+Beehive is a tool that is bundled with hive under the bin directory. We can use beehive to quick varify and connect to hive through hiveserver to. Beehive will act like a thrift client.
+
+So lets verify.
+
+bin/beeline
+
+beeline> !connect jdbc:hive2://10.1.2.11:10000/default hive hive@123
+0: jdbc:hive2://10.1.2.11:10000/default> show tables
+0: jdbc:hive2://10.1.2.11:10000/default> create table employees ( name STRING, age INT) row format delimited fields terminated by '|';
+
+Congrats! you have successfully configured hiveserver2 and verified using a thrift client "beeline". you can also test that with a java JDBC client as follows.
+
+create a java class as follows:
+
+import java.sql.SQLException;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import java.sql.DriverManager;
+public class HiveJdbcClient {
+        private static String driverName = "org.apache.hive.jdbc.HiveDriver";
+        /**
+        * @param args
+        * @throws SQLException
+        **/
+        public static void main(String[] args) throws SQLException {
+                try {
+                        Class.forName(driverName);
+                } catch (ClassNotFoundException e){
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                        System.exit(1);
+                }
+                Connection con = DriverManager.getConnection("jdbc:hive2://10.1.2.11:10000/default", "hive", "hive@123");
+                Statement stmt = con.createStatement();
+                String tableName = "testHiveDriverTable";
+                stmt.execute("drop table " + tableName);
+                ResultSet res=null;
+                stmt.execute("create table " + tableName + " (key int, value string)");
+                // show tables
+                String sql = "show tables '" + tableName + "'";
+                System.out.println("Running: " + sql);
+                res = stmt.executeQuery(sql);
+                if (res.next()) {
+                        System.out.println(res.getString(1));
+                }
+                // describe table
+                sql = "describe " + tableName;
+                System.out.println("Running: " + sql);
+                res = stmt.executeQuery(sql);
+                while (res.next()) {
+                        System.out.println(res.getString(1) + "\t" + res.getString(2));
+                }
+                // load data into table
+                // NOTE: filepath has to be local to the hive server
+                // NOTE: /tmp/test_hive_server.txt is a ctrl-A separated file with two fields per line
+                String filepath = "/tmp/test_hive_server.txt";
+                sql = "load data local inpath '" + filepath + "' into table " + tableName;
+                System.out.println("Running: " + sql);
+                stmt.execute(sql);
+                // select * query
+                sql = "select * from " + tableName;
+                System.out.println("Running: " + sql);
+                res = stmt.executeQuery(sql);
+                while (res.next()){
+                        System.out.println(String.valueOf(res.getInt(1)) + "\t" + res.getString(2));
+                }
+                // regular hive query
+                sql = "select count(1) from " + tableName;
+                System.out.println("Running: " + sql);
+                res = stmt.executeQuery(sql);
+                while (res.next()){
+                        System.out.println(res.getString(1));
+                }
+        }
+}
+
+Compile the class:
+javac HiveJdbcClient.java
+
+Configure CLASSPATH env variable so that it contains all the jar files from hive_home/lib/ . you also need to add the hadoop-core*.jar and $HIVE_HOME/conf in the classpath
+
+you need to now create a file on the hive server as this exercise is going to programmatically load that file to hive/hdfs.
+
+echo -e '1\x01foo' > /tmp/test_hive_server.txt
+echo -e '2\x01bar' >> /tmp/test_hive_server.txt
+
+for i in ${HIVE_HOME}/lib/*.jar ; do
+    CLASSPATH=$CLASSPATH:$i
+done
+CLASSPATH=.:$CLASSPATH:$HADOOP_HOME/hadoop-core-1.2.1.jar:$HIVE_HOME/conf
+
+java -cp $CLASSPATH HiveJdbcClient
+
+
+
+
+troubleshooting resources
+http://grokbase.com/t/hive/user/148wrhv5v2/hive-unable-to-use-metastore-database
+https://archanaschangale.wordpress.com/2013/09/05/changing-default-metastore-derby-of-hive-to-mysql/

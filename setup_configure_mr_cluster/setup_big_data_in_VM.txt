@@ -1,5 +1,5 @@
 Configure Network on the Machine, To configure network on the VM, Following is required:
-1. stop the running VM 
+1. stop the running VM
 2. go to settings of the VM machine
 3. Click on Network
 4. Click on Adaptor 2
@@ -7,7 +7,7 @@ Configure Network on the Machine, To configure network on the VM, Following is r
 6. Select "Internal Network" in the Attached to section.
 7. Press OK.
 8. Start the VM now.
-9. Go to System Setting -> Network 
+9. Go to System Setting -> Network
 10. There should be 2 networks. Select each of them 1 by 1 and notice that one of those would have the following IP address configured "10.0.2.15". Leave that network adaptor.
 11. Select the other network adaptor and "ON" it if its "OFF"
 12. Click on "Options" -> IPv4 settings -> Method "Manual" -> Add, and specify the IP as 10.1.2.11 and Netmask as 8.
@@ -40,8 +40,8 @@ ls -l /etc/alternatives/javac
 # JAVA HOME is /usr/lib/jvm/java-6-openjdk-i386/
 
 
-vi ~/.bashrc 
-#Append the following 
+vi ~/.bashrc
+#Append the following
 export JAVA_HOME=/usr/lib/jvm/java-6-openjdk-i386/
 export HADOOP_HOME=/usr/local/hadoop
 export PATH=$PATH:$JAVA_HOME/bin:$HADOOP_HOME/bin
@@ -51,7 +51,7 @@ export PATH=$PATH:$JAVA_HOME/bin:$HADOOP_HOME/bin
 source ~/.bashrc
 
 cd /usr/local/hadoop
-hadoop jar hadoop-examples-1.2.1.jar wordcount README.txt out.0 
+hadoop jar hadoop-examples-1.2.1.jar wordcount README.txt out.0
 rm -rf ./out.0
 
 # disable ipv6
@@ -66,8 +66,6 @@ vi conf/hadoop-env.sh
 
 export JAVA_HOME=/usr/lib/jvm/java-6-openjdk-i386/
 export HADOOP_HEAPSIZE=512
-
-conf/core-site.xml
 
 sudo mkdir -p /app/hadoop/tmp
 sudo chown hduser:hadoop /app/hadoop/tmp
@@ -121,7 +119,7 @@ Shutdown the VM now and clone the master VM as slave1
 
 #On Slave VM
 
-Change the network IP address on the slave VM otherwise we will get into a conflicting IP address error. and lets assign 10.1.2.12 to the slave VM. 
+Change the network IP address on the slave VM otherwise we will get into a conflicting IP address error. and lets assign 10.1.2.12 to the slave VM.
 
 
 #On Master
@@ -129,7 +127,7 @@ Change the network IP address on the slave VM otherwise we will get into a confl
 hadoop namenode -format
 
 start-dfs.sh
-jps on each machine  
+jps on each machine
 
 start-mapred.sh
 jps on each machine
@@ -143,7 +141,7 @@ hadoop fs operations can be performed now
 
 
 ***************************************************
-Setting UP HIVE 
+Setting UP HIVE
 
 ***************************************************
 
@@ -152,7 +150,7 @@ On Master
 cd ~/softwares
 wget http://mirror.reverse.net/pub/apache/hive/stable/apache-hive-0.13.1-bin.tar.gz # if its not downloaded allready
 tar xvzf apache-hive-0.13.1-bin.tar.gz
-ln -s /home/hduser/softwares/apache-hive-0.13.1-bin /usr/local/hive
+sudo ln -s /home/hduser/softwares/apache-hive-0.13.1-bin /usr/local/hive
 
 vi ~/.bashrc
 export HIVE_HOME=/usr/local/hive
@@ -172,7 +170,7 @@ sudo netstat -tap | grep mysql
 
 tcp        0      0 localhost:mysql         *:*                LISTEN      2556/mysqld
 
-sudo service mysqld restart
+sudo service mysqld/mysql restart
 
 mysql -u root -p
 
@@ -201,8 +199,10 @@ mysql> USE metastore;
 mysql> SOURCE /usr/local/hive/scripts/metastore/upgrade/mysql/hive-schema-0.13.0.mysql.sql;
 
 mysql> CREATE USER 'hive'@'master' IDENTIFIED BY 'mypassword';
-mysql> REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'hive'@'master';
+mysql> CREATE USER 'hive'@'localhost' IDENTIFIED BY 'mypassword';
+mysql> REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'hive'@'localhost';
 mysql> GRANT SELECT,INSERT,UPDATE,DELETE,LOCK TABLES,EXECUTE ON metastore.* TO 'hive'@'master';
+mysql> GRANT SELECT,INSERT,UPDATE,DELETE,LOCK TABLES,EXECUTE ON metastore.* TO 'hive'@'localhost';
 mysql> FLUSH PRIVILEGES;
 mysql> quit;
 
@@ -242,19 +242,19 @@ create the file conf/hive-site.xml and add the following to it:
 </property>
 
 <property>
-  <name>datanucleus.autoStartMechanism</name> 
+  <name>datanucleus.autoStartMechanism</name>
   <value>SchemaTable</value>
-</property> 
+</property>
 </configuration>
 
 In addition, you must create /tmp and /user/hive/warehouse (aka hive.metastore.warehouse.dir) and set them chmod g+w in HDFS before you can create a table in Hive.
 
 Commands to perform this setup:
 
-  $ $HADOOP_HOME/bin/hadoop fs -mkdir       /tmp
-  $ $HADOOP_HOME/bin/hadoop fs -mkdir       /user/hive/warehouse
-  $ $HADOOP_HOME/bin/hadoop fs -chmod g+w   /tmp
-  $ $HADOOP_HOME/bin/hadoop fs -chmod g+w   /user/hive/warehouse
+$HADOOP_INSTALL/bin/hadoop fs -mkdir       /tmp
+$HADOOP_INSTALL/bin/hadoop fs -mkdir       /user/hive/warehouse
+$HADOOP_INSTALL/bin/hadoop fs -chmod g+w   /tmp
+$HADOOP_INSTALL/bin/hadoop fs -chmod g+w   /user/hive/warehouse
 
 You may find it useful, though it's not necessary, to set HIVE_HOME:
 
@@ -265,7 +265,7 @@ export PATH=$PATH:$HIVE_HOME\bin
 
 source ~/.bashrc
 
-To launch hive shell 
+To launch hive shell
 
 $ hive
 
@@ -284,7 +284,7 @@ B|30
 C|10
 D|40
 
-hive> create table employees ( name STRING, age INT) row format delimited fields terminated by '|'
+hive> create table employees ( name STRING, age INT) row format delimited fields terminated by '|';
 
 hive> hadoop fs -put emps.txt /user/hive/warehouse/employees/
 hive> select * from employees
@@ -305,25 +305,81 @@ tar xvzf sqoop-1.4.5.bin__hadoop-1.0.0.tar.gz
 sudo ln -s ~/softwares/sqoop-1.4.5.bin__hadoop-1.0.0 /usr/local/sqoop
 
 cp ~/softwares/mysql-connector-java-5.1.31/mysql-connector-java-5.1.31-bin.jar /usr/local/hadoop/lib
- 
+
 cp ~/softwares/mysql-connector-java-5.1.31/mysql-connector-java-5.1.31-bin.jar /usr/local/sqoop/lib
 
 stop-all.sh
 start-all.sh
 
 
-using JPS verify that all the hadoop processes are running 
+using JPS verify that all the hadoop processes are running
 
 vi ~/.bashrc
 
 export SQOOP_HOME=/usr/local/sqoop
 export PATH=$PATH:$SQOOP_HOME/bin
 
-
 sqoop import -connect jdbc:mysql://localhost:3306/mysql --username root --password sa --table user
 
 
+mysql -u root -p
+
+create table users ( name varchar(10), age int);
+insert into users values ( 'ABC', 20);
+commit;
+
+sqoop import --hive-import -connect jdbc:mysql://localhost:3306/mysql --username root --password sa --table users -m 1
+
+
+--map-column-hive prov_id=binary
 
 http://www.datastax.com/documentation/datastax_enterprise/4.0/datastax_enterprise/ana/anaSqpDemo.html
 
+Hive Issue solution
 
+mysql -u root -p
+
+mysql> CREATE DATABASE metastore;
+mysql> USE metastore;
+mysql> SOURCE /usr/local/hive/scripts/metastore/upgrade/mysql/hive-schema-0.13.0.mysql.sql;
+
+mysql> CREATE USER 'hive' IDENTIFIED BY 'mypassword';
+mysql> GRANT ALL ON metastore.* TO 'hive';
+mysql> FLUSH PRIVILEGES;
+mysql> quit;
+
+Download the installers
+cd ~/softwares
+wget http://apache.bytenet.in/pig/pig-0.12.1/pig-0.12.1.tar.gz
+wget http://archive.apache.org/dist/oozie/4.0.0/oozie-4.0.0.tar.gz
+wget http://apache.bytenet.in/hbase/stable/hbase-0.98.9-hadoop1-bin.tar.gz
+wget http://apache.bytenet.in/hbase/stable/hbase-0.98.9-hadoop2-bin.tar.gz
+wget http://apache.bytenet.in/hadoop/common/stable2/hadoop-2.6.0.tar.gz
+wget http://www.apache.org/dyn/closer.cgi/flume/1.5.2/apache-flume-1.5.2-bin.tar.gz
+
+
+Configure Pig
+
+tar xvzf pig-0.12.1.tar.gz
+sudo ln -s /home/hduser/softwares/pig-0.12.1 /usr/local/pig
+
+vi ~/.bashrc
+
+export PIG_INSTALL=/usr/local/pig
+export PIG_CLASSPATH=$HADOOP_HOME/conf
+export PATH=$PATH:$HIVE_HOME/bin:$PIG_INSTALL/bin
+
+save the file
+source ~/.bashrc
+
+$ pig  # To launch the Grunt shell
+
+you can now try some pig command and it should work.
+
+A = LOAD '/user/hive/warehouse/employees' USING PigStorage() AS (name:chararray, age:int, gpa:float);
+
+DUMP A
+(A|20,,)
+(B|30,,)
+(C|10,,)
+(D|40,,)
